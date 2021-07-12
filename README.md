@@ -7,21 +7,22 @@
 
 <!-- vim-markdown-toc GFM -->
 
-*   [Motivation](#motivation)
-*   [Goals](#goals)
-*   [Scorecard Checks](#scorecard-checks)
-*   [Usage](#usage)
-    *   [Using repository URL](#using-repository-url)
-    *   [Using a package manager](#using-a-package-manager)
-    *   [Running specific checks](#running-specific-checks)
-    *   [Authentication](#authentication)
-    *   [Understanding Scorecard results](#understanding-scorecard-results)
-    *   [Formatting Results](#formatting-results)
-*   [Public Data](#public-data)
-*   [Adding a Scorecard Check](#adding-a-scorecard-check)
-*   [Troubleshooting](#troubleshooting)
-*   [Supportability](#supportability)
-*   [Contributing](#contributing)
+* [Motivation](#motivation)
+* [Goals](#goals)
+* [Scorecard Checks](#scorecard-checks)
+* [Usage](#usage)
+  * [Docker](#docker)
+  * [Using repository URL](#using-repository-url)
+  * [Using a Package manager](#using-a-package-manager)
+  * [Running specific checks](#running-specific-checks)
+  * [Authentication](#authentication)
+  * [Understanding Scorecard results](#understanding-scorecard-results)
+  * [Formatting Results](#formatting-results)
+* [Public Data](#public-data)
+* [Adding a Scorecard Check](#adding-a-scorecard-check)
+* [Troubleshooting](#troubleshooting)
+* [Supportability](#supportability)
+* [Contributing](#contributing)
 
 <!-- vim-markdown-toc -->
 
@@ -68,6 +69,16 @@ To see detailed information about each check and remediation steps, check out
 the [checks documentation page](checks/checks.md).
 
 ## Usage
+
+### Docker
+
+`scorecard` is available as a Docker container:
+
+The `GITHUB_AUTH_TOKEN` has to be set to a valid [token](#Authentication)
+
+``` shell
+docker run -e GITHUB_AUTH_TOKEN=token gcr.io/openssf/scorecard:latest --show-details --repo=https://github.com/ossf/scorecard
+```
 
 ### Using repository URL
 
