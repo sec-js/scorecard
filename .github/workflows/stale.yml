@@ -27,19 +27,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@ebacdc22ef6c2cfb85ee5ded8f2e640f4c776dd5 # v1
+      uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e # v2.10.4
       with:
         egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
 
-    - uses: actions/stale@5ebf00ea0e4c1561e9b43a292ed34424fb1d4578 # v3.0.18
+    - uses: actions/stale@5bef64f19d7facfb25b37b414482c7164d639639 # v3.0.18
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        stale-issue-message: 'Stale issue message'
-        stale-pr-message: 'Stale pull request message'
-        stale-issue-label: 'no-issue-activity'
-        exempt-issue-labels: 'wishlist,slsa,priority,bug,core feature,enhancement,good first issue,help wanted,needs discussion'
-        stale-pr-label: 'no-pr-activity'
-        exempt-pr-labels: 'awaiting-approval,work-in-progress'
+        stale-issue-message: 'This issue has been marked stale because it has been open for 60 days with no activity.'
+        stale-pr-message: 'This pull request has been marked stale because it has been open for 10 days with no activity'
+        exempt-issue-labels: 'priority/must-do,kind/bug,good first issue,help wanted'
+        exempt-issue-milestones: 'Structured results'
+        exempt-pr-labels: 'awaiting-approval'
         days-before-pr-stale: '10'
         days-before-pr-close: '20'
         days-before-issue-stale: '60'
+        days-before-issue-close: -1
+        operations-per-run: '100'

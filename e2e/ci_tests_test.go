@@ -20,11 +20,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/ossf/scorecard/v4/checker"
-	"github.com/ossf/scorecard/v4/checks"
-	"github.com/ossf/scorecard/v4/clients"
-	"github.com/ossf/scorecard/v4/clients/githubrepo"
-	scut "github.com/ossf/scorecard/v4/utests"
+	"github.com/ossf/scorecard/v5/checker"
+	"github.com/ossf/scorecard/v5/checks"
+	"github.com/ossf/scorecard/v5/clients"
+	"github.com/ossf/scorecard/v5/clients/githubrepo"
+	"github.com/ossf/scorecard/v5/clients/gitlabrepo"
+	scut "github.com/ossf/scorecard/v5/utests"
 )
 
 var _ = Describe("E2E TEST:"+checks.CheckCITests, func() {
@@ -50,7 +51,7 @@ var _ = Describe("E2E TEST:"+checks.CheckCITests, func() {
 				NumberOfDebug: 0,
 			}
 			result := checks.CITests(&req)
-			Expect(scut.ValidateTestReturn(nil, "CI tests run", &expected, &result, &dl)).Should(BeTrue())
+			scut.ValidateTestReturn(GinkgoTB(), "CI tests run", &expected, &result, &dl)
 			Expect(repoClient.Close()).Should(BeNil())
 		})
 		It("Should return use of CI tests at commit", func() {
@@ -74,7 +75,7 @@ var _ = Describe("E2E TEST:"+checks.CheckCITests, func() {
 				NumberOfDebug: 0,
 			}
 			result := checks.CITests(&req)
-			Expect(scut.ValidateTestReturn(nil, "CI tests run", &expected, &result, &dl)).Should(BeTrue())
+			scut.ValidateTestReturn(GinkgoTB(), "CI tests run", &expected, &result, &dl)
 			Expect(repoClient.Close()).Should(BeNil())
 		})
 		It("Should return absence of CI tests in a repo with unsquashed merges", func() {
@@ -98,7 +99,65 @@ var _ = Describe("E2E TEST:"+checks.CheckCITests, func() {
 				NumberOfDebug: 12,
 			}
 			result := checks.CITests(&req)
-			Expect(scut.ValidateTestReturn(nil, "CI tests run", &expected, &result, &dl)).Should(BeTrue())
+			scut.ValidateTestReturn(GinkgoTB(), "CI tests run", &expected, &result, &dl)
+			Expect(repoClient.Close()).Should(BeNil())
+		})
+		It("Should return use of CI tests at commit - GitLab", func() {
+			skipIfTokenIsNot(gitlabPATTokenType, "GitLab only")
+
+			dl := scut.TestDetailLogger{}
+			repo, err := gitlabrepo.MakeGitlabRepo("gitlab.com/gitlab-org/gitlab")
+			Expect(err).Should(BeNil())
+			repoClient, err := gitlabrepo.CreateGitlabClient(context.Background(), repo.Host())
+			Expect(err).Should(BeNil())
+			// url to commit is https://gitlab.com/gitlab-org/gitlab/-/commit/8ae23fa220d73fa07501aabd94214c9e83fe61a0
+			err = repoClient.InitRepo(repo, "8ae23fa220d73fa07501aabd94214c9e83fe61a0", 0)
+			Expect(err).Should(BeNil())
+			req := checker.CheckRequest{
+				Ctx:        context.Background(),
+				RepoClient: repoClient,
+				Repo:       repo,
+				Dlogger:    &dl,
+			}
+			expected := scut.TestReturn{
+				Error:         nil,
+				Score:         6,
+				NumberOfWarn:  0,
+				NumberOfInfo:  0,
+				NumberOfDebug: 22,
+			}
+			result := checks.CITests(&req)
+			scut.ValidateTestReturn(GinkgoTB(), "CI tests at commit - GitLab", &expected, &result, &dl)
+			Expect(result.Error).Should(BeNil())
+			Expect(repoClient.Close()).Should(BeNil())
+		})
+		It("Should return use of CI tests at commit - GitLab", func() {
+			skipIfTokenIsNot(gitlabPATTokenType, "GitLab only")
+
+			dl := scut.TestDetailLogger{}
+			repo, err := gitlabrepo.MakeGitlabRepo("gitlab.com/fdroid/fdroidclient")
+			Expect(err).Should(BeNil())
+			repoClient, err := gitlabrepo.CreateGitlabClient(context.Background(), repo.Host())
+			Expect(err).Should(BeNil())
+			// url to commit is https://gitlab.com/fdroid/fdroidclient/-/commit/a1d33881902cee33586a4fd4ee1538042a7bdedf
+			err = repoClient.InitRepo(repo, "a1d33881902cee33586a4fd4ee1538042a7bdedf", 0)
+			Expect(err).Should(BeNil())
+			req := checker.CheckRequest{
+				Ctx:        context.Background(),
+				RepoClient: repoClient,
+				Repo:       repo,
+				Dlogger:    &dl,
+			}
+			expected := scut.TestReturn{
+				Error:         nil,
+				Score:         10,
+				NumberOfWarn:  0,
+				NumberOfInfo:  0,
+				NumberOfDebug: 1,
+			}
+			result := checks.CITests(&req)
+			Expect(result.Score).Should(BeNumerically("==", expected.Score))
+			Expect(result.Error).Should(BeNil())
 			Expect(repoClient.Close()).Should(BeNil())
 		})
 	})

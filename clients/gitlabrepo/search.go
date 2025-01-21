@@ -19,19 +19,19 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 
-	"github.com/ossf/scorecard/v4/clients"
+	"github.com/ossf/scorecard/v5/clients"
 )
 
 var errEmptyQuery = errors.New("search query is empty")
 
 type searchHandler struct {
 	glClient *gitlab.Client
-	repourl  *repoURL
+	repourl  *Repo
 }
 
-func (handler *searchHandler) init(repourl *repoURL) {
+func (handler *searchHandler) init(repourl *Repo) {
 	handler.repourl = repourl
 }
 

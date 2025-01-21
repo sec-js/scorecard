@@ -16,7 +16,9 @@
 package clients
 
 import (
+	"context"
 	"errors"
+	"io"
 	"time"
 )
 
@@ -35,11 +37,14 @@ type RepoClient interface {
 	// Returns an absolute path to the local repository
 	// in the format that matches the local OS
 	LocalPath() (string, error)
-	GetFileContent(filename string) ([]byte, error)
+	// GetFileReader returns an io.ReadCloser corresponding to the desired file.
+	// Callers should ensure to Close the Reader when finished.
+	GetFileReader(filename string) (io.ReadCloser, error)
 	GetBranch(branch string) (*BranchRef, error)
 	GetCreatedAt() (time.Time, error)
 	GetDefaultBranchName() (string, error)
 	GetDefaultBranch() (*BranchRef, error)
+	GetOrgRepoClient(context.Context) (RepoClient, error)
 	ListCommits() ([]Commit, error)
 	ListIssues() ([]Issue, error)
 	ListLicenses() ([]License, error)

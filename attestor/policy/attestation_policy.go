@@ -22,10 +22,11 @@ import (
 	"github.com/gobwas/glob"
 	"gopkg.in/yaml.v2"
 
-	"github.com/ossf/scorecard/v4/checker"
-	"github.com/ossf/scorecard/v4/checks"
-	sce "github.com/ossf/scorecard/v4/errors"
-	sclog "github.com/ossf/scorecard/v4/log"
+	"github.com/ossf/scorecard/v5/checker"
+	"github.com/ossf/scorecard/v5/checks"
+	sce "github.com/ossf/scorecard/v5/errors"
+	"github.com/ossf/scorecard/v5/finding"
+	sclog "github.com/ossf/scorecard/v5/log"
 )
 
 //nolint:govet
@@ -70,8 +71,7 @@ type Dependency struct {
 	Version     string `yaml:"version"`
 }
 
-// Allows us to run fewer scorecard checks if some policy values
-// are don't-cares.
+// GetRequiredChecksForPolicy Allows us to run fewer scorecard checks if some policy values are don't-cares.
 func (ap *AttestationPolicy) GetRequiredChecksForPolicy() map[string]bool {
 	requiredChecks := make(map[string]bool)
 
@@ -94,7 +94,7 @@ func (ap *AttestationPolicy) GetRequiredChecksForPolicy() map[string]bool {
 	return requiredChecks
 }
 
-// Run attestation policy checks on raw data.
+// EvaluateResults Run attestation policy checks on raw data.
 func (ap *AttestationPolicy) EvaluateResults(raw *checker.RawResults) (PolicyResult, error) {
 	logger := sclog.NewLogger(sclog.DefaultLevel)
 	if ap.PreventBinaryArtifacts {
@@ -120,7 +120,7 @@ func (ap *AttestationPolicy) EvaluateResults(raw *checker.RawResults) (PolicyRes
 
 	if ap.EnsureCodeReviewed {
 		// By default, if code review reqs. aren't specified, we assume
-		// the user wants there to be atleast one reviewer
+		// the user wants there to be at least one reviewer
 		if len(ap.CodeReviewRequirements.RequiredApprovers) == 0 &&
 			ap.CodeReviewRequirements.MinReviewers == 0 {
 			ap.CodeReviewRequirements.MinReviewers = 1
@@ -170,7 +170,7 @@ func CheckPreventBinaryArtifacts(
 			logger.Info(
 				fmt.Sprintf(
 					"binary detected path:%s type: %v offset:%v",
-					artifactFile.Path, checker.FileTypeBinary, artifactFile.Offset,
+					artifactFile.Path, finding.FileTypeBinary, artifactFile.Offset,
 				),
 			)
 			return Fail, nil
@@ -290,7 +290,7 @@ func isUnpinnedDependencyAllowed(d checker.Dependency, allowed []Dependency) boo
 	return false
 }
 
-// ParseFromFile takes a policy file and returns an AttestationPolicy.
+// ParseAttestationPolicyFromFile takes a policy file and returns an AttestationPolicy.
 func ParseAttestationPolicyFromFile(policyFile string) (*AttestationPolicy, error) {
 	if policyFile != "" {
 		data, err := os.ReadFile(policyFile)
@@ -314,7 +314,7 @@ func ParseAttestationPolicyFromFile(policyFile string) (*AttestationPolicy, erro
 	return nil, nil
 }
 
-// Parses a policy file and returns a AttestationPolicy.
+// ParseAttestationPolicyFromYAML parses a policy file and returns a AttestationPolicy.
 func ParseAttestationPolicyFromYAML(b []byte) (*AttestationPolicy, error) {
 	ap := AttestationPolicy{}
 
