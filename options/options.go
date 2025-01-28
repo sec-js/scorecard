@@ -18,41 +18,46 @@ package options
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/caarlos0/env/v6"
 
-	"github.com/ossf/scorecard/v4/clients"
-	"github.com/ossf/scorecard/v4/log"
+	"github.com/ossf/scorecard/v5/clients"
+	sclog "github.com/ossf/scorecard/v5/log"
 )
 
 // Options define common options for configuring scorecard.
 type Options struct {
-	Repo       string
-	Local      string
-	Commit     string
-	LogLevel   string
-	Format     string
-	NPM        string
-	PyPI       string
-	RubyGems   string
-	PolicyFile string
-	// TODO(action): Add logic for writing results to file
-	ResultsFile string
-	ChecksToRun []string
-	Metadata    []string
-	CommitDepth int
-	ShowDetails bool
+	Repo            string
+	Local           string
+	Commit          string
+	LogLevel        string
+	Format          string
+	NPM             string
+	PyPI            string
+	RubyGems        string
+	Nuget           string
+	PolicyFile      string
+	ResultsFile     string
+	ChecksToRun     []string
+	ProbesToRun     []string
+	Metadata        []string
+	CommitDepth     int
+	ShowDetails     bool
+	ShowAnnotations bool
 	// Feature flags.
-	EnableSarif       bool `env:"ENABLE_SARIF"`
-	EnableScorecardV6 bool `env:"SCORECARD_V6"`
+	EnableSarif                 bool `env:"ENABLE_SARIF"`
+	EnableScorecardV6           bool `env:"SCORECARD_V6"`
+	EnableScorecardExperimental bool `env:"SCORECARD_EXPERIMENTAL"`
 }
 
 // New creates a new instance of `Options`.
 func New() *Options {
 	opts := &Options{}
 	if err := env.Parse(opts); err != nil {
-		fmt.Printf("could not parse env vars, using default options: %v", err)
+		log.Printf("could not parse env vars, using default options: %v", err)
 	}
 	// Defaulting.
 	// TODO(options): Consider moving this to a separate function/method.
@@ -75,6 +80,8 @@ const (
 	// Formats.
 	// FormatJSON specifies that results should be output in JSON format.
 	FormatJSON = "json"
+	// FormatProbe specifies that results should be output in probe JSON format.
+	FormatProbe = "probe"
 	// FormatSarif specifies that results should be output in SARIF format.
 	FormatSarif = "sarif"
 	// FormatDefault specifies that results should be output in default format.
@@ -89,18 +96,21 @@ const (
 	// EnvVarScorecardV6 is the environment variable which enables scorecard v6
 	// options.
 	EnvVarScorecardV6 = "SCORECARD_V6"
+	// EnvVarScorecardExperimental is the environment variable which enables experimental
+	// features.
+	EnvVarScorecardExperimental = "SCORECARD_EXPERIMENTAL"
 )
 
 var (
 	// DefaultLogLevel retrieves the default log level.
-	DefaultLogLevel = log.DefaultLevel.String()
+	DefaultLogLevel = sclog.DefaultLevel.String()
 
 	errCommitIsEmpty          = errors.New("commit should be non-empty")
 	errFormatNotSupported     = errors.New("unsupported format")
 	errPolicyFileNotSupported = errors.New("policy file is not supported yet")
 	errRawOptionNotSupported  = errors.New("raw option is not supported yet")
 	errRepoOptionMustBeSet    = errors.New(
-		"exactly one of `repo`, `npm`, `pypi`, `rubygems` or `local` must be set",
+		"exactly one of `repo`, `npm`, `pypi`, `rubygems`, `nuget` or `local` must be set",
 	)
 	errSARIFNotSupported = errors.New("SARIF format is not supported yet")
 	errValidate          = errors.New("some options could not be validated")
@@ -111,11 +121,12 @@ var (
 func (o *Options) Validate() error {
 	var errs []error
 
-	// Validate exactly one of `--repo`, `--npm`, `--pypi`, `--rubygems`, `--local` is enabled.
+	// Validate exactly one of `--repo`, `--npm`, `--pypi`, `--rubygems`, `--nuget`, `--local` is enabled.
 	if boolSum(o.Repo != "",
 		o.NPM != "",
 		o.PyPI != "",
 		o.RubyGems != "",
+		o.Nuget != "",
 		o.Local != "") != 1 {
 		errs = append(
 			errs,
@@ -172,7 +183,6 @@ func (o *Options) Validate() error {
 			errs,
 		)
 	}
-
 	return nil
 }
 
@@ -187,6 +197,37 @@ func boolSum(bools ...bool) int {
 }
 
 // Feature flags.
+
+// GitHub integration support.
+// See https://github.com/ossf/scorecard-action/issues/1107.
+// NOTE: We don't add a field to to the Option structure to simplify
+// integration. If we did, the Action would also need to be aware
+// of the integration and pass the relevant values. This
+// would add redundancy and complicate maintenance.
+func (o *Options) IsInternalGitHubIntegrationEnabled() bool {
+	return (os.Getenv("CI") == "true") &&
+		(os.Getenv("SCORECARD_INTERNAL_GITHUB_INTEGRATION") == "1") &&
+		(os.Getenv("GITHUB_EVENT_NAME") == "dynamic")
+}
+
+// Checks returns the list of checks and honours the
+// GitHub integration.
+func (o *Options) Checks() []string {
+	if o.IsInternalGitHubIntegrationEnabled() {
+		// Overwrite the list of checks.
+		s := os.Getenv("SCORECARD_INTERNAL_GITHUB_CHECKS")
+		l := strings.Split(s, ",")
+		for i := range l {
+			l[i] = strings.TrimSpace(l[i])
+		}
+		return l
+	}
+	return o.ChecksToRun
+}
+
+func (o *Options) Probes() []string {
+	return o.ProbesToRun
+}
 
 // isSarifEnabled returns true if SARIF format was specified in options or via
 // environment variable.
@@ -205,7 +246,7 @@ func (o *Options) isV6Enabled() bool {
 
 func validateFormat(format string) bool {
 	switch format {
-	case FormatJSON, FormatSarif, FormatDefault, FormatRaw:
+	case FormatJSON, FormatProbe, FormatSarif, FormatDefault, FormatRaw:
 		return true
 	default:
 		return false

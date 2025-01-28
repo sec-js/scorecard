@@ -17,17 +17,17 @@ package gitlabrepo
 import (
 	"fmt"
 
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 
-	"github.com/ossf/scorecard/v4/clients"
+	"github.com/ossf/scorecard/v5/clients"
 )
 
 type statusesHandler struct {
 	glClient *gitlab.Client
-	repourl  *repoURL
+	repourl  *Repo
 }
 
-func (handler *statusesHandler) init(repourl *repoURL) {
+func (handler *statusesHandler) init(repourl *Repo) {
 	handler.repourl = repourl
 }
 
@@ -46,7 +46,7 @@ func statusFromData(commitStatuses []*gitlab.CommitStatus) []clients.Status {
 	for _, commitStatus := range commitStatuses {
 		statuses = append(statuses, clients.Status{
 			State:     commitStatus.Status,
-			Context:   fmt.Sprint(commitStatus.ID),
+			Context:   commitStatus.Name,
 			URL:       commitStatus.TargetURL,
 			TargetURL: commitStatus.TargetURL,
 		})

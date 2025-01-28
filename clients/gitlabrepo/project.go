@@ -19,19 +19,19 @@ import (
 	"sync"
 	"time"
 
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 type projectHandler struct {
 	glClient  *gitlab.Client
 	once      *sync.Once
 	errSetup  error
-	repourl   *repoURL
+	repourl   *Repo
 	createdAt time.Time
 	archived  bool
 }
 
-func (handler *projectHandler) init(repourl *repoURL) {
+func (handler *projectHandler) init(repourl *Repo) {
 	handler.repourl = repourl
 	handler.errSetup = nil
 	handler.once = new(sync.Once)
